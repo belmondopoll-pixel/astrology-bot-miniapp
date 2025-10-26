@@ -37,6 +37,15 @@ app.get('/api/health', (req, res) => {
     });
 });
 
+// Корневой путь для проверки
+app.get('/', (req, res) => {
+  res.json({ 
+    message: 'Astrology Bot Backend is running!',
+    timestamp: new Date().toISOString(),
+    endpoints: ['/api/health', '/api/daily-horoscope', '/api/create-invoice', etc...]
+  });
+});
+
 // Создание инвойса для Telegram Stars
 app.post('/api/create-invoice', async (req, res) => {
     try {
