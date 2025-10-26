@@ -24,4 +24,4 @@
 
 ```bash
 git clone https://github.com/your-username/astrology-bot.git
-cd astrology-bot
+cd astrology-bot"# astrology-bot-miniapp" 
