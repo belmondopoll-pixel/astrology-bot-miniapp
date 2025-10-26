@@ -1,0 +1,1873 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>АстроБот - Гороскопы и Таро</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        :root {
+            --primary-bg: #4b0082;
+            --secondary-bg: #3a0066;
+            --accent-color: #8a2be2;
+            --accent-light: #9370db;
+            --premium-gradient: linear-gradient(135deg, #FFD700 0%, #FFA500 50%, #FF6B00 100%);
+            --free-gradient: linear-gradient(135deg, #00ff88 0%, #00ccff 100%);
+            --glass-bg: rgba(255, 255, 255, 0.08);
+            --glass-border: rgba(255, 255, 255, 0.12);
+            --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            --text-light: #f0e6ff;
+            --text-lighter: #ffffff;
+            --text-muted: #c4b5fd;
+        }
+
+        @import url('https://fonts.googleapis.com/css2?family=Exo+2:wght@300;400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        body {
+            font-family: 'Exo 2', 'Arial', sans-serif;
+            background: var(--primary-bg);
+            color: var(--text-light);
+            line-height: 1.6;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .cosmic-background {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            overflow: hidden;
+        }
+
+        .star {
+            position: absolute;
+            background: white;
+            border-radius: 50%;
+            animation: twinkle var(--twinkle-duration, 4s) infinite ease-in-out;
+            opacity: var(--star-opacity, 0.3);
+        }
+
+        .nebula {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(40px);
+            opacity: 0.1;
+            animation: nebulaFloat 20s infinite ease-in-out;
+        }
+
+        .nebula-1 {
+            width: 300px;
+            height: 300px;
+            background: radial-gradient(circle, #8a2be2, transparent);
+            top: 10%;
+            left: 10%;
+            animation-delay: 0s;
+        }
+
+        .nebula-2 {
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, #ff0080, transparent);
+            bottom: 10%;
+            right: 10%;
+            animation-delay: -10s;
+        }
+
+        .nebula-3 {
+            width: 250px;
+            height: 250px;
+            background: radial-gradient(circle, #00ff88, transparent);
+            top: 50%;
+            left: 80%;
+            animation-delay: -5s;
+        }
+
+        .floating-planet {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(1px);
+            animation: planetOrbit 60s infinite linear;
+            opacity: 0.15;
+            z-index: -1;
+        }
+
+        .planet-1 {
+            width: 100px;
+            height: 100px;
+            background: radial-gradient(circle at 30% 30%, #ff6b6b, #c44569);
+            top: 20%;
+            left: 5%;
+            animation-delay: 0s;
+        }
+
+        .planet-2 {
+            width: 150px;
+            height: 150px;
+            background: radial-gradient(circle at 30% 30%, #4ecdc4, #44a08d);
+            bottom: 15%;
+            left: 10%;
+            animation-delay: -20s;
+        }
+
+        .planet-3 {
+            width: 80px;
+            height: 80px;
+            background: radial-gradient(circle at 30% 30%, #ffeaa7, #fdcb6e);
+            top: 60%;
+            right: 5%;
+            animation-delay: -40s;
+        }
+
+        @keyframes twinkle {
+            0%, 100% { opacity: 0.2; transform: scale(1); }
+            50% { opacity: 0.8; transform: scale(1.2); }
+        }
+
+        @keyframes nebulaFloat {
+            0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.05; }
+            25% { transform: translate(20px, 10px) scale(1.1); opacity: 0.1; }
+            50% { transform: translate(10px, 20px) scale(1.05); opacity: 0.08; }
+            75% { transform: translate(-10px, 15px) scale(0.95); opacity: 0.12; }
+        }
+
+        @keyframes planetOrbit {
+            0% { transform: rotate(0deg) translateX(150px) rotate(0deg) scale(1); }
+            25% { transform: rotate(90deg) translateX(150px) rotate(-90deg) scale(1.1); }
+            50% { transform: rotate(180deg) translateX(150px) rotate(-180deg) scale(1); }
+            75% { transform: rotate(270deg) translateX(150px) rotate(-270deg) scale(0.9); }
+            100% { transform: rotate(360deg) translateX(150px) rotate(-360deg) scale(1); }
+        }
+
+        .container {
+            width: 100%;
+            height: 100%;
+            margin: 0 auto;
+            padding: 15px;
+            position: relative;
+            z-index: 10;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .scroll-animate {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 0.6s ease;
+        }
+
+        .scroll-animate.animated {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .delay-1 { transition-delay: 0.1s; }
+        .delay-2 { transition-delay: 0.2s; }
+        .delay-3 { transition-delay: 0.3s; }
+        .delay-4 { transition-delay: 0.4s; }
+        .delay-5 { transition-delay: 0.5s; }
+
+        .screen-transition {
+            animation: screenFadeIn 0.4s ease-out;
+        }
+
+        @keyframes screenFadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        h1, h2, h3, .header h1, .section-title {
+            font-family: 'Orbitron', 'Courier New', monospace;
+            font-weight: 700;
+            letter-spacing: 1px;
+            text-align: center;
+        }
+
+        .service-btn .title, .btn-primary, .btn-secondary {
+            font-family: 'Space Grotesk', 'Arial', sans-serif;
+            font-weight: 600;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+            color: var(--text-lighter);
+            text-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            position: relative;
+            width: 100%;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            margin-bottom: 8px;
+            background: linear-gradient(135deg, #ffffff 0%, #e2e8f0 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 14px;
+            font-weight: 400;
+        }
+
+        .glass-card {
+            background: var(--glass-bg);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 15px;
+            backdrop-filter: blur(15px);
+            border: 1px solid var(--glass-border);
+            box-shadow: var(--glass-shadow);
+            width: 100%;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .glass-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+            transition: left 0.6s ease;
+        }
+
+        .glass-card:hover::before {
+            left: 100%;
+        }
+
+        .service-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 15px;
+            width: 100%;
+        }
+
+        .service-btn {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 14px;
+            padding: 16px 10px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.4s ease;
+            backdrop-filter: blur(10px);
+            color: var(--text-light);
+            text-decoration: none;
+            display: block;
+            position: relative;
+            overflow: hidden;
+            width: 100%;
+        }
+
+        .service-btn.free {
+            border: 1px solid rgba(0, 255, 136, 0.4);
+            background: rgba(0, 255, 136, 0.1);
+        }
+
+        .service-btn.premium {
+            border: 1px solid rgba(255, 215, 0, 0.4);
+            background: rgba(255, 215, 0, 0.1);
+            animation: premiumPulse 3s infinite;
+        }
+
+        .service-btn:hover {
+            transform: translateY(-3px);
+            background: rgba(255, 255, 255, 0.12);
+            border-color: rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+        }
+
+        .service-icon {
+            width: 45px;
+            height: 45px;
+            margin: 0 auto 10px;
+            background: linear-gradient(135deg, var(--accent-color) 0%, var(--accent-light) 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .service-btn .title {
+            font-weight: 600;
+            font-size: 13px;
+            margin-bottom: 5px;
+            color: var(--text-lighter);
+            letter-spacing: 0.5px;
+        }
+
+        .service-btn .price {
+            font-size: 11px;
+            color: var(--accent-light);
+            font-weight: 500;
+        }
+
+        .service-btn.free .price {
+            color: #00ff88;
+            font-weight: 600;
+        }
+
+        .service-btn.premium .price {
+            color: #FFD700;
+            font-weight: 600;
+        }
+
+        .section-title {
+            font-size: 18px;
+            margin-bottom: 14px;
+            color: var(--text-lighter);
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            gap: 10px;
+        }
+
+        .payment-card {
+            background: linear-gradient(135deg, var(--accent-color) 0%, #6a0dad 100%);
+            color: var(--text-lighter);
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .payment-amount {
+            font-size: 32px;
+            font-weight: 700;
+            margin: 8px 0;
+            text-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-family: 'Orbitron', monospace;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent-color) 0%, #6a0dad 100%);
+            color: white;
+            border: none;
+            border-radius: 14px;
+            padding: 16px 20px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            transition: all 0.4s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            margin-top: 8px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-primary::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .btn-primary:hover::before {
+            left: 100%;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(138, 43, 226, 0.5);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-light);
+            border: 2px solid var(--accent-color);
+            border-radius: 14px;
+            padding: 14px 20px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            transition: all 0.3s ease;
+            margin-top: 8px;
+            backdrop-filter: blur(10px);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-secondary::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .btn-secondary:hover::before {
+            left: 100%;
+        }
+
+        .btn-secondary:hover {
+            background: var(--accent-color);
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .back-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: var(--text-light);
+            font-size: 14px;
+            cursor: pointer;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 10px 14px;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            font-family: 'Space Grotesk', sans-serif;
+            width: auto;
+        }
+
+        .back-btn:hover {
+            background: rgba(255, 255, 255, 0.15);
+            transform: translateX(-3px);
+        }
+
+        .zodiac-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-top: 14px;
+            width: 100%;
+        }
+
+        .zodiac-btn {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 10px;
+            padding: 14px 6px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-light);
+            backdrop-filter: blur(8px);
+        }
+
+        .zodiac-btn:hover, .zodiac-btn.active {
+            background: var(--accent-color);
+            color: white;
+            border-color: var(--accent-color);
+            transform: translateY(-2px);
+        }
+
+        .tarot-spread {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 14px;
+            padding: 16px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(8px);
+            width: 100%;
+        }
+
+        .tarot-spread:hover {
+            background: var(--accent-color);
+            color: white;
+            transform: translateY(-2px);
+            border-color: var(--accent-color);
+        }
+
+        .tarot-spread strong {
+            display: block;
+            margin-bottom: 4px;
+            font-size: 14px;
+            color: var(--text-lighter);
+        }
+
+        .tarot-spread small {
+            opacity: 0.8;
+            font-size: 12px;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+            width: 100%;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 600;
+            color: var(--text-lighter);
+            text-align: left;
+            font-size: 14px;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 14px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 10px;
+            font-size: 15px;
+            background: rgba(255, 255, 255, 0.08);
+            color: var(--text-light);
+            transition: all 0.3s ease;
+            backdrop-filter: blur(8px);
+            box-sizing: border-box;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--accent-color);
+            background: rgba(255, 255, 255, 0.12);
+        }
+
+        input[type="date"].form-input,
+        input[type="time"].form-input {
+            width: 100%;
+            max-width: 100%;
+            box-sizing: border-box;
+        }
+
+        input[type="date"]::-webkit-calendar-picker-indicator,
+        input[type="time"]::-webkit-calendar-picker-indicator {
+            opacity: 0.7;
+            cursor: pointer;
+        }
+
+        input[type="date"]::-webkit-datetime-edit,
+        input[type="time"]::-webkit-datetime-edit {
+            color: var(--text-light);
+        }
+
+        input[type="date"]::-webkit-datetime-edit-fields-wrapper,
+        input[type="time"]::-webkit-datetime-edit-fields-wrapper {
+            padding: 0;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 50px 15px;
+            color: var(--text-light);
+            width: 100%;
+        }
+
+        .loading-dots {
+            display: inline-block;
+            position: relative;
+            width: 80px;
+            height: 80px;
+            margin-bottom: 20px;
+        }
+
+        .loading-dots div {
+            position: absolute;
+            top: 33px;
+            width: 13px;
+            height: 13px;
+            border-radius: 50%;
+            background: var(--accent-color);
+            animation-timing-function: cubic-bezier(0, 1, 1, 0);
+        }
+
+        .loading-dots div:nth-child(1) {
+            left: 8px;
+            animation: loading-dots1 0.6s infinite;
+        }
+
+        .loading-dots div:nth-child(2) {
+            left: 8px;
+            animation: loading-dots2 0.6s infinite;
+        }
+
+        .loading-dots div:nth-child(3) {
+            left: 32px;
+            animation: loading-dots2 0.6s infinite;
+        }
+
+        .loading-dots div:nth-child(4) {
+            left: 56px;
+            animation: loading-dots3 0.6s infinite;
+        }
+
+        @keyframes loading-dots1 {
+            0% { transform: scale(0); }
+            100% { transform: scale(1); }
+        }
+
+        @keyframes loading-dots3 {
+            0% { transform: scale(1); }
+            100% { transform: scale(0); }
+        }
+
+        @keyframes loading-dots2 {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(24px, 0); }
+        }
+
+        @keyframes premiumPulse {
+            0%, 100% {
+                box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);
+            }
+            50% {
+                box-shadow: 0 4px 25px rgba(255, 215, 0, 0.6);
+            }
+        }
+
+        .result-card {
+            background: rgba(75, 0, 130, 0.7);
+            border-radius: 16px;
+            padding: 20px;
+            margin-top: 15px;
+            box-shadow: var(--glass-shadow);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(15px);
+            width: 100%;
+        }
+
+        .tarot-card {
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 14px;
+            padding: 16px;
+            margin-bottom: 12px;
+            border-left: 5px solid var(--accent-color);
+            backdrop-filter: blur(8px);
+            width: 100%;
+        }
+
+        .tarot-card.upright {
+            border-left-color: #00ff88;
+        }
+
+        .tarot-card.reversed {
+            border-left-color: #ff4444;
+        }
+
+        .tarot-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .tarot-card-name {
+            font-weight: 700;
+            font-size: 14px;
+            color: var(--text-lighter);
+        }
+
+        .tarot-card-position {
+            font-size: 12px;
+            padding: 3px 6px;
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .tarot-card-meaning {
+            font-size: 13px;
+            color: var(--text-light);
+            opacity: 0.9;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 5px 10px;
+            background: var(--accent-color);
+            color: white;
+            border-radius: 16px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+            width: 100%;
+        }
+
+        .user-avatar {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent-color) 0%, var(--accent-light) 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 18px;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .user-details h3 {
+            margin-bottom: 3px;
+            color: var(--text-lighter);
+            text-align: left;
+            font-size: 16px;
+        }
+
+        .user-details p {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 13px;
+            text-align: left;
+        }
+
+        .icon-wrapper {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 22px;
+            height: 22px;
+        }
+
+        .history-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            width: 100%;
+        }
+
+        .history-item:last-child {
+            border-bottom: none;
+        }
+
+        .history-service {
+            font-weight: 600;
+            color: var(--text-lighter);
+            font-size: 14px;
+        }
+
+        .history-date {
+            font-size: 11px;
+            opacity: 0.7;
+        }
+
+        .history-cost {
+            color: var(--accent-light);
+            font-weight: 600;
+            font-size: 13px;
+        }
+
+        .articles-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 10px;
+            width: 100%;
+        }
+
+        .article-card {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 14px;
+            padding: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(8px);
+            width: 100%;
+        }
+
+        .article-card:hover {
+            background: var(--accent-color);
+            transform: translateY(-2px);
+        }
+
+        .article-title {
+            font-weight: 600;
+            font-size: 14px;
+            margin-bottom: 6px;
+            color: var(--text-lighter);
+            text-align: left;
+        }
+
+        .article-description {
+            font-size: 13px;
+            opacity: 0.8;
+            line-height: 1.4;
+            text-align: left;
+        }
+
+        .article-content {
+            line-height: 1.6;
+            margin-bottom: 12px;
+            text-align: left;
+            font-size: 14px;
+        }
+
+        .icon-sun:before { content: "☀"; font-size: 22px; }
+        .icon-moon:before { content: "☾"; font-size: 22px; }
+        .icon-star:before { content: "★"; font-size: 22px; }
+        .icon-zodiac:before { content: "♋"; font-size: 22px; }
+        .icon-tarot:before { content: "🜍"; font-size: 22px; }
+        .icon-compat:before { content: "⚯"; font-size: 22px; }
+        .icon-chart:before { content: "🜁"; font-size: 22px; }
+        .icon-article:before { content: "📖"; font-size: 22px; }
+        .icon-coin:before { content: "🪙"; font-size: 22px; }
+        .icon-history:before { content: "📊"; font-size: 22px; }
+        .icon-back:before { content: "←"; font-size: 18px; }
+
+        .zodiac-symbols {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 5;
+            opacity: 0.03;
+        }
+
+        .zodiac-symbol {
+            position: absolute;
+            font-size: 35px;
+            animation: symbolFloat 30s infinite linear;
+        }
+
+        @keyframes symbolFloat {
+            0% { transform: translateY(0) rotate(0deg); opacity: 0; }
+            10% { opacity: 0.1; }
+            50% { transform: translateY(-20px) rotate(180deg); opacity: 0.1; }
+            90% { opacity: 0; }
+            100% { transform: translateY(-40px) rotate(360deg); opacity: 0; }
+        }
+
+        .rgb-text {
+            background: linear-gradient(90deg, #ff0080, #00ff88, #0080ff, #ff0080);
+            background-size: 400% 400%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: rgbShift 4s ease infinite;
+        }
+
+        @keyframes rgbShift {
+            0%, 100% {
+                background-position: 0% 50%;
+            }
+            50% {
+                background-position: 100% 50%;
+            }
+        }
+
+        .pulse-glow {
+            animation: pulse 4s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 0.5;
+                transform: scale(1);
+            }
+            50% {
+                opacity: 0.8;
+                transform: scale(1.05);
+            }
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(255,255,255,0.1);
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--accent-color);
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--accent-light);
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 12px;
+            }
+            
+            .service-grid {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+            
+            .zodiac-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .header h1 {
+                font-size: 22px;
+            }
+            
+            .glass-card {
+                padding: 16px;
+            }
+            
+            .service-btn {
+                padding: 14px 8px;
+            }
+        }
+
+        @media (max-width: 360px) {
+            .container {
+                padding: 10px;
+            }
+            
+            .header h1 {
+                font-size: 20px;
+            }
+            
+            .zodiac-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Динамический космический фон -->
+    <div class="cosmic-background" id="cosmicBackground"></div>
+    
+    <!-- Плавающие планеты -->
+    <div class="floating-planet planet-1"></div>
+    <div class="floating-planet planet-2"></div>
+    <div class="floating-planet planet-3"></div>
+    
+    <!-- Туманности -->
+    <div class="nebula nebula-1"></div>
+    <div class="nebula nebula-2"></div>
+    <div class="nebula nebula-3"></div>
+    
+    <!-- Зодиакальные символы -->
+    <div class="zodiac-symbols" id="zodiacSymbols"></div>
+
+    <div class="container">
+        <!-- Главный экран -->
+        <div id="mainScreen">
+            <div class="header scroll-animate">
+                <div class="user-info">
+                    <div class="user-avatar pulse-glow">
+                        <div class="icon-wrapper">👤</div>
+                    </div>
+                    <div class="user-details">
+                        <h3 id="userName">Пользователь</h3>
+                        <p>Ваш астрологический помощник</p>
+                    </div>
+                </div>
+                <h1 class="rgb-text">АстроБот</h1>
+                <p>Ваш проводник в мир сакральных знаний</p>
+            </div>
+
+            <div class="glass-card scroll-animate delay-1">
+                <div class="section-title">
+                    <div class="icon-wrapper icon-zodiac"></div>
+                    Услуги
+                </div>
+                <div class="service-grid">
+                    <a class="service-btn free scroll-animate delay-1" onclick="showService('dailyHoroscope')">
+                        <div class="service-icon">
+                            <div class="icon-wrapper icon-sun"></div>
+                        </div>
+                        <div class="title">Ежедневный гороскоп</div>
+                        <div class="price">Бесплатно</div>
+                    </a>
+                    <a class="service-btn premium scroll-animate delay-2" onclick="showService('horoscope')">
+                        <div class="service-icon">
+                            <div class="icon-wrapper icon-moon"></div>
+                        </div>
+                        <div class="title">Недельный гороскоп</div>
+                        <div class="price">333 ⭐</div>
+                    </a>
+                    <a class="service-btn premium scroll-animate delay-1" onclick="showService('compatibility')">
+                        <div class="service-icon">
+                            <div class="icon-wrapper icon-compat"></div>
+                        </div>
+                        <div class="title">Совместимость</div>
+                        <div class="price">55 ⭐</div>
+                    </a>
+                    <a class="service-btn premium scroll-animate delay-2" onclick="showService('tarot')">
+                        <div class="service-icon">
+                            <div class="icon-wrapper icon-tarot"></div>
+                        </div>
+                        <div class="title">Расклад Таро</div>
+                        <div class="price">888 ⭐</div>
+                    </a>
+                    <a class="service-btn premium scroll-animate delay-1" onclick="showService('natal')">
+                        <div class="service-icon">
+                            <div class="icon-wrapper icon-chart"></div>
+                        </div>
+                        <div class="title">Натальная карта</div>
+                        <div class="price">999 ⭐</div>
+                    </a>
+                    <a class="service-btn scroll-animate delay-2" onclick="showService('articles')">
+                        <div class="service-icon">
+                            <div class="icon-wrapper icon-article"></div>
+                        </div>
+                        <div class="title">Познавательные статьи</div>
+                        <div class="price">Обучение</div>
+                    </a>
+                </div>
+            </div>
+
+            <div class="glass-card payment-card scroll-animate delay-2">
+                <div class="section-title">
+                    <div class="icon-wrapper icon-coin"></div>
+                    Система оплаты
+                </div>
+                <div class="payment-amount">Telegram Stars</div>
+                <p>Прямая оплата с вашего кошелька</p>
+                <button class="btn-secondary pulse-glow" onclick="showPaymentInfo()">
+                    Как оплатить?
+                </button>
+            </div>
+
+            <div class="glass-card scroll-animate delay-3">
+                <div class="section-title">
+                    <div class="icon-wrapper icon-history"></div>
+                    История запросов
+                </div>
+                <div id="requestHistory">
+                    <p style="text-align: center; opacity: 0.7; padding: 15px 0;">
+                        У вас пока нет завершенных запросов
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Экран ежедневного гороскопа -->
+        <div id="dailyHoroscopeScreen" class="hidden">
+            <button class="back-btn" onclick="showMainScreen()">
+                <div class="icon-wrapper icon-back"></div>
+                Назад
+            </button>
+            <div class="header">
+                <h1>Ежедневный гороскоп</h1>
+                <p>Бесплатный гороскоп на сегодня</p>
+            </div>
+            <div class="glass-card">
+                <div class="zodiac-grid" id="dailyZodiacGrid"></div>
+            </div>
+        </div>
+
+        <!-- Экран недельного гороскопа -->
+        <div id="horoscopeScreen" class="hidden">
+            <button class="back-btn" onclick="showMainScreen()">
+                <div class="icon-wrapper icon-back"></div>
+                Назад
+            </button>
+            <div class="header">
+                <h1>Недельный гороскоп</h1>
+                <p>Выберите ваш знак зодиака</p>
+            </div>
+            <div class="glass-card">
+                <div class="zodiac-grid" id="zodiacGrid"></div>
+            </div>
+        </div>
+
+        <!-- Экран совместимости -->
+        <div id="compatibilityScreen" class="hidden">
+            <button class="back-btn" onclick="showMainScreen()">
+                <div class="icon-wrapper icon-back"></div>
+                Назад
+            </button>
+            <div class="header">
+                <h1>Совместимость</h1>
+                <p>Выберите два знака зодиака</p>
+            </div>
+            <div class="glass-card">
+                <h3 class="section-title">Первый знак:</h3>
+                <div class="zodiac-grid" id="firstSignGrid"></div>
+            </div>
+            <div class="glass-card">
+                <h3 class="section-title">Второй знак:</h3>
+                <div class="zodiac-grid" id="secondSignGrid"></div>
+            </div>
+            <button class="btn-primary" onclick="checkCompatibility()" id="compatibilityBtn" disabled>
+                Проверить совместимость
+            </button>
+        </div>
+
+        <!-- Экран Таро -->
+        <div id="tarotScreen" class="hidden">
+            <button class="back-btn" onclick="showMainScreen()">
+                <div class="icon-wrapper icon-back"></div>
+                Назад
+            </button>
+            <div class="header">
+                <h1>Расклад Таро</h1>
+                <p>Выберите тип расклада</p>
+            </div>
+            <div class="glass-card">
+                <div class="tarot-spread" onclick="selectTarotSpread('daily')">
+                    <strong>Карта дня</strong>
+                    <small>Совет на сегодня</small>
+                </div>
+                <div class="tarot-spread" onclick="selectTarotSpread('three')">
+                    <strong>Прошлое-Настоящее-Будущее</strong>
+                    <small>3 карты</small>
+                </div>
+                <div class="tarot-spread" onclick="selectTarotSpread('four')">
+                    <strong>Ситуация-Вызовы-Совет-Результат</strong>
+                    <small>4 карты</small>
+                </div>
+                <div class="tarot-spread" onclick="selectTarotSpread('celtic')">
+                    <strong>Кельтский крест</strong>
+                    <small>Полный анализ (10 карт)</small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Экран натальной карты -->
+        <div id="natalScreen" class="hidden">
+            <button class="back-btn" onclick="showMainScreen()">
+                <div class="icon-wrapper icon-back"></div>
+                Назад
+            </button>
+            <div class="header">
+                <h1>Натальная карта</h1>
+                <p>Введите данные рождения</p>
+            </div>
+            <div class="glass-card">
+                <div class="form-group">
+                    <label for="birthDate">Дата рождения:</label>
+                    <input type="date" id="birthDate" class="form-input">
+                </div>
+                <div class="form-group">
+                    <label for="birthTime">Время рождения:</label>
+                    <input type="time" id="birthTime" class="form-input">
+                </div>
+                <div class="form-group">
+                    <label for="birthPlace">Место рождения:</label>
+                    <input type="text" id="birthPlace" placeholder="Город, страна" class="form-input">
+                </div>
+                <button class="btn-primary" onclick="generateNatalChart()">
+                    Создать натальную карту
+                </button>
+            </div>
+        </div>
+
+        <!-- Экран статей -->
+        <div id="articlesScreen" class="hidden">
+            <button class="back-btn" onclick="showMainScreen()">
+                <div class="icon-wrapper icon-back"></div>
+                Назад
+            </button>
+            <div class="header">
+                <h1>Познавательные статьи</h1>
+                <p>Узнайте больше о наших услугах</p>
+            </div>
+            <div class="glass-card">
+                <div class="articles-grid">
+                    <div class="article-card" onclick="showArticle('horoscope')">
+                        <div class="article-title">Астрология: Наука или искусство?</div>
+                        <div class="article-description">Узнайте, как работают гороскопы и почему они могут быть полезны в повседневной жизни.</div>
+                    </div>
+                    <div class="article-card" onclick="showArticle('compatibility')">
+                        <div class="article-title">Совместимость знаков зодиака</div>
+                        <div class="article-description">Как астрология помогает понять отношения между людьми и улучшить взаимопонимание.</div>
+                    </div>
+                    <div class="article-card" onclick="showArticle('tarot')">
+                        <div class="article-title">Таро: Древняя мудрость карт</div>
+                        <div class="article-description">История карт Таро, их символика и как они могут помочь в самопознании.</div>
+                    </div>
+                    <div class="article-card" onclick="showArticle('natal')">
+                        <div class="article-title">Натальная карта: Ваш астрологический паспорт</div>
+                        <div class="article-description">Что такое натальная карта и как она раскрывает ваш уникальный потенциал.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Экран загрузки -->
+        <div id="loadingScreen" class="hidden">
+            <!-- Content will be generated dynamically -->
+        </div>
+
+        <!-- Экран результата -->
+        <div id="resultScreen" class="hidden">
+            <button class="back-btn" onclick="showMainScreen()">
+                <div class="icon-wrapper icon-back"></div>
+                Главная
+            </button>
+            <div id="resultContent"></div>
+        </div>
+
+        <!-- Экран статьи -->
+        <div id="articleScreen" class="hidden">
+            <button class="back-btn" onclick="showArticlesScreen()">
+                <div class="icon-wrapper icon-back"></div>
+                Назад к статьям
+            </button>
+            <div id="articleContent"></div>
+        </div>
+    </div>
+
+    <script>
+        // Конфигурация
+        const BACKEND_URL = 'https://your-backend-url.vercel.app'; // Замените на ваш URL бэкенда
+
+        // Инициализация Telegram Web App
+        let tg = window.Telegram?.WebApp;
+        
+        if (!tg) {
+            tg = {
+                initDataUnsafe: { user: { first_name: 'Тестовый Пользователь', id: 123456 } },
+                showPopup: (params) => alert(params.message),
+                openInvoice: (url, callback) => {
+                    console.log('Opening invoice:', url);
+                    // В демо-режиме имитируем успешную оплату
+                    if (confirm('Демо: Оплатить услугу через Telegram Stars?')) {
+                        setTimeout(() => callback('paid'), 1500);
+                    } else {
+                        callback('cancelled');
+                    }
+                }
+            };
+        }
+
+        // Данные приложения
+        let appData = {
+            user: null,
+            firstSign: null,
+            secondSign: null,
+            selectedSpread: null,
+            requestHistory: [],
+            pendingOrder: null
+        };
+
+        // Знаки зодиака
+        const zodiacSigns = [
+            'Овен', 'Телец', 'Близнецы', 'Рак', 'Лев', 'Дева',
+            'Весы', 'Скорпион', 'Стрелец', 'Козерог', 'Водолей', 'Рыбы'
+        ];
+
+        // Символы зодиака
+        const zodiacSymbols = ['♈', '♉', '♊', '♋', '♌', '♍', '♎', '♏', '♐', '♑', '♒', '♓'];
+
+        // Стоимости услуг
+        const serviceCosts = {
+            'weekly_horoscope': 333,
+            'compatibility': 55,
+            'tarot': 888,
+            'natal_chart': 999
+        };
+
+        // Инициализация приложения
+        async function initApp() {
+            try {
+                // Инициализация Telegram WebApp
+                if (tg.init) {
+                    tg.expand();
+                    tg.ready();
+                    tg.enableClosingConfirmation();
+                }
+                
+                // Адаптация под размеры экрана
+                adaptToScreenSize();
+                
+                // Создание анимаций
+                createStars();
+                createZodiacSymbols();
+                
+                // Загрузка данных
+                await updateUserData();
+                initZodiacGrids();
+                updateUI();
+                initScrollAnimations();
+                
+                // Показываем главный экран
+                showMainScreen();
+                
+                console.log('App initialized successfully');
+                
+            } catch (error) {
+                console.error('App initialization error:', error);
+                showError('Ошибка инициализации приложения');
+            }
+        }
+
+        // Адаптация под размеры экрана
+        function adaptToScreenSize() {
+            const screenWidth = window.innerWidth;
+            
+            if (screenWidth < 400) {
+                document.body.style.fontSize = '14px';
+            } else if (screenWidth < 500) {
+                document.body.style.fontSize = '15px';
+            } else {
+                document.body.style.fontSize = '16px';
+            }
+            
+            // Адаптация контейнера
+            const container = document.querySelector('.container');
+            if (container) {
+                container.style.minHeight = tg.viewportHeight + 'px';
+            }
+        }
+
+        // Создание звездного фона
+        function createStars() {
+            const background = document.getElementById('cosmicBackground');
+            const starCount = Math.min(150, Math.floor(window.innerWidth * window.innerHeight / 2000));
+            
+            for (let i = 0; i < starCount; i++) {
+                const star = document.createElement('div');
+                star.classList.add('star');
+                
+                const size = Math.random() * 2 + 1;
+                const posX = Math.random() * 100;
+                const posY = Math.random() * 100;
+                const duration = 2 + Math.random() * 4;
+                const opacity = 0.2 + Math.random() * 0.5;
+                
+                star.style.width = `${size}px`;
+                star.style.height = `${size}px`;
+                star.style.left = `${posX}%`;
+                star.style.top = `${posY}%`;
+                star.style.animationDuration = `${duration}s`;
+                star.style.setProperty('--twinkle-duration', `${duration}s`);
+                star.style.setProperty('--star-opacity', opacity);
+                
+                background.appendChild(star);
+            }
+        }
+
+        // Создание плавающих зодиакальных символов
+        function createZodiacSymbols() {
+            const symbolsContainer = document.getElementById('zodiacSymbols');
+            const symbolCount = Math.min(20, Math.floor(window.innerWidth / 50));
+            
+            for (let i = 0; i < symbolCount; i++) {
+                const symbol = document.createElement('div');
+                symbol.classList.add('zodiac-symbol');
+                
+                const symbolIndex = Math.floor(Math.random() * zodiacSymbols.length);
+                const posX = Math.random() * 100;
+                const delay = Math.random() * 20;
+                const duration = 20 + Math.random() * 20;
+                
+                symbol.textContent = zodiacSymbols[symbolIndex];
+                symbol.style.left = `${posX}%`;
+                symbol.style.animationDelay = `${delay}s`;
+                symbol.style.animationDuration = `${duration}s`;
+                
+                symbolsContainer.appendChild(symbol);
+            }
+        }
+
+        // Инициализация анимаций при скроллинге
+        function initScrollAnimations() {
+            const animatedElements = document.querySelectorAll('.scroll-animate');
+            
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('animated');
+                    }
+                });
+            }, {
+                threshold: 0.1,
+                rootMargin: '0px 0px -50px 0px'
+            });
+            
+            animatedElements.forEach(element => {
+                observer.observe(element);
+            });
+        }
+
+        // Обновление данных пользователя
+        async function updateUserData() {
+            try {
+                if (tg.initDataUnsafe.user) {
+                    document.getElementById('userName').textContent = tg.initDataUnsafe.user.first_name || 'Пользователь';
+                }
+            } catch (error) {
+                console.error('Error updating user data:', error);
+                if (tg.initDataUnsafe.user) {
+                    document.getElementById('userName').textContent = tg.initDataUnsafe.user.first_name || 'Пользователь';
+                }
+            }
+        }
+
+        // Основная функция для платных услуг
+        async function requestPaidService(serviceType, serviceData) {
+            try {
+                showLoading('Создаем счет для оплаты...');
+                
+                const response = await fetch(`${BACKEND_URL}/api/create-invoice`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        user_id: tg.initDataUnsafe.user.id,
+                        service_type: serviceType,
+                        service_data: serviceData
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (!data.success) {
+                    throw new Error(data.error || 'Ошибка создания счета');
+                }
+
+                // Сохраняем ID заказа
+                appData.pendingOrder = data.order_id;
+                
+                // Открываем инвойс через Telegram
+                tg.openInvoice(data.invoice_link, async (status) => {
+                    if (status === 'paid') {
+                        await handleSuccessfulPayment(data.order_id, serviceType, serviceData);
+                    } else {
+                        showMainScreen();
+                        showError('Оплата отменена');
+                    }
+                });
+
+            } catch (error) {
+                console.error('Payment error:', error);
+                showError('Ошибка при создании платежа: ' + error.message);
+            }
+        }
+
+        // Обработка успешного платежа
+        async function handleSuccessfulPayment(orderId, serviceType, serviceData) {
+            try {
+                showLoading('Генерируем ваш результат...');
+                
+                // Получаем результат услуги
+                const response = await fetch(`${BACKEND_URL}/api/service-result/${orderId}`);
+                const result = await response.json();
+                
+                if (!result.success) {
+                    throw new Error(result.error || 'Ошибка получения результата');
+                }
+                
+                // Показываем результат
+                showServiceResult(serviceType, serviceData, result.content);
+                
+                // Добавляем в историю
+                appData.requestHistory.unshift({
+                    service: getServiceName(serviceType, serviceData),
+                    date: new Date().toLocaleDateString('ru-RU'),
+                    cost: getServiceCost(serviceType)
+                });
+                updateUI();
+                
+            } catch (error) {
+                console.error('Service provision error:', error);
+                showError('Ошибка при предоставлении услуги');
+            }
+        }
+
+        // Запрос бесплатного ежедневного гороскопа
+        async function requestDailyHoroscope(sign) {
+            try {
+                showLoading('Генерируем ваш гороскоп...');
+                
+                const response = await fetch(`${BACKEND_URL}/api/daily-horoscope`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        user_id: tg.initDataUnsafe.user.id,
+                        zodiac_sign: sign
+                    })
+                });
+
+                const result = await response.json();
+                
+                if (!result.success) {
+                    throw new Error(result.error || 'Ошибка получения гороскопа');
+                }
+
+                const content = `
+                    <div class="header">
+                        <h1 class="rgb-text">Ежедневный гороскоп для ${sign}</h1>
+                    </div>
+                    <div class="result-card">
+                        <div class="status-badge">✨ Бесплатная услуга</div>
+                        <div class="article-content">
+                            ${result.content.replace(/\n/g, '<br>')}
+                        </div>
+                    </div>
+                `;
+                
+                // Добавляем в историю
+                appData.requestHistory.unshift({
+                    service: `Ежедневный гороскоп для ${sign}`,
+                    date: new Date().toLocaleDateString('ru-RU'),
+                    cost: 0
+                });
+                updateUI();
+                showResult(content);
+            } catch (error) {
+                console.error('Daily horoscope error:', error);
+                showError('Ошибка при получении гороскопа');
+            }
+        }
+
+        // Вспомогательные функции
+        function getServiceCost(serviceType) {
+            return serviceCosts[serviceType] || 0;
+        }
+
+        function getServiceName(serviceType, serviceData) {
+            const names = {
+                'weekly_horoscope': `Недельный гороскоп для ${serviceData.zodiac_sign}`,
+                'compatibility': `Совместимость ${serviceData.first_sign} + ${serviceData.second_sign}`,
+                'tarot': `Расклад Таро (${serviceData.spread_type})`,
+                'natal_chart': 'Натальная карта'
+            };
+            return names[serviceType] || 'Услуга';
+        }
+
+        // Показать результат услуги
+        function showServiceResult(serviceType, serviceData, content) {
+            let header = '';
+            let cost = getServiceCost(serviceType);
+            
+            switch (serviceType) {
+                case 'weekly_horoscope':
+                    header = `📅 Гороскоп на неделю для ${serviceData.zodiac_sign}`;
+                    break;
+                case 'compatibility':
+                    header = `💑 Совместимость: ${serviceData.first_sign} и ${serviceData.second_sign}`;
+                    break;
+                case 'tarot':
+                    header = `🃏 Ваш расклад Таро`;
+                    break;
+                case 'natal_chart':
+                    header = `🌌 Ваша натальная карта`;
+                    break;
+            }
+            
+            const contentHTML = `
+                <div class="header">
+                    <h1>${header}</h1>
+                </div>
+                <div class="result-card">
+                    <div class="status-badge">Услуга оплачена • ${cost} ⭐</div>
+                    <div class="article-content">
+                        ${content.replace(/\n/g, '<br>')}
+                    </div>
+                </div>
+            `;
+            
+            showResult(contentHTML);
+        }
+
+        // Инициализация сеток знаков зодиака
+        function initZodiacGrids() {
+            const grids = [
+                { id: 'zodiacGrid', callback: (sign) => requestPaidService('weekly_horoscope', { zodiac_sign: sign }) },
+                { id: 'dailyZodiacGrid', callback: (sign) => requestDailyHoroscope(sign) },
+                { id: 'firstSignGrid', callback: null },
+                { id: 'secondSignGrid', callback: null }
+            ];
+
+            grids.forEach(grid => {
+                const element = document.getElementById(grid.id);
+                if (element) {
+                    element.innerHTML = '';
+                    zodiacSigns.forEach(sign => {
+                        const btn = document.createElement('button');
+                        btn.className = 'zodiac-btn';
+                        btn.textContent = sign;
+                        if (grid.callback) {
+                            btn.onclick = () => grid.callback(sign);
+                        } else {
+                            btn.onclick = () => handleZodiacSelect(grid.id, sign, btn);
+                        }
+                        element.appendChild(btn);
+                    });
+                }
+            });
+        }
+
+        // Обработка выбора знака зодиака для совместимости
+        function handleZodiacSelect(gridId, sign, element) {
+            if (gridId === 'firstSignGrid') {
+                appData.firstSign = sign;
+                updateCompatibilityButton();
+                highlightSelected(element, 'firstSignGrid');
+            } else if (gridId === 'secondSignGrid') {
+                appData.secondSign = sign;
+                updateCompatibilityButton();
+                highlightSelected(element, 'secondSignGrid');
+            }
+        }
+
+        // Подсветка выбранного знака
+        function highlightSelected(element, gridId) {
+            const grid = document.getElementById(gridId);
+            const buttons = grid.getElementsByClassName('zodiac-btn');
+            for (let btn of buttons) {
+                btn.classList.remove('active');
+            }
+            element.classList.add('active');
+        }
+
+        // Обновление кнопки совместимости
+        function updateCompatibilityButton() {
+            const btn = document.getElementById('compatibilityBtn');
+            if (appData.firstSign && appData.secondSign) {
+                btn.disabled = false;
+                btn.textContent = `Проверить ${appData.firstSign} и ${appData.secondSign}`;
+            } else {
+                btn.disabled = true;
+                btn.textContent = 'Проверить совместимость';
+            }
+        }
+
+        async function checkCompatibility() {
+            if (!appData.firstSign || !appData.secondSign) return;
+            
+            await requestPaidService('compatibility', {
+                first_sign: appData.firstSign,
+                second_sign: appData.secondSign
+            });
+        }
+
+        async function selectTarotSpread(spread) {
+            await requestPaidService('tarot', { spread_type: spread });
+        }
+
+        async function generateNatalChart() {
+            const date = document.getElementById('birthDate').value;
+            const time = document.getElementById('birthTime').value;
+            const place = document.getElementById('birthPlace').value;
+            
+            if (!date || !time || !place) {
+                showError('Пожалуйста, заполните все поля');
+                return;
+            }
+            
+            await requestPaidService('natal_chart', {
+                birth_data: {
+                    birth_date: date,
+                    birth_time: time,
+                    birth_place: place
+                }
+            });
+        }
+
+        // Навигация между экранами
+        function showScreen(screenId, transition = true) {
+            hideAllScreens();
+            const screen = document.getElementById(screenId);
+            screen.classList.remove('hidden');
+            
+            if (transition) {
+                screen.classList.add('screen-transition');
+            }
+            
+            // Прокрутка вверх при смене экрана
+            window.scrollTo(0, 0);
+            
+            // Обновляем анимации для нового экрана
+            setTimeout(initScrollAnimations, 100);
+        }
+
+        function showMainScreen() {
+            showScreen('mainScreen');
+            updateUI();
+        }
+
+        function showService(service) {
+            showScreen(service + 'Screen');
+        }
+
+        function showArticlesScreen() {
+            showScreen('articlesScreen');
+        }
+
+        function showLoading(message = 'Генерируем ваш запрос...') {
+            hideAllScreens();
+            const loadingScreen = document.getElementById('loadingScreen');
+            loadingScreen.innerHTML = `
+                <div class="loading">
+                    <div class="loading-dots">
+                        <div></div>
+                        <div></div>
+                        <div></div>
+                        <div></div>
+                    </div>
+                    <h3>${message}</h3>
+                    <p>Это может занять несколько секунд</p>
+                </div>
+            `;
+            loadingScreen.classList.remove('hidden');
+            loadingScreen.classList.add('screen-transition');
+        }
+
+        function showResult(content) {
+            hideAllScreens();
+            document.getElementById('resultContent').innerHTML = content;
+            document.getElementById('resultScreen').classList.remove('hidden');
+            document.getElementById('resultScreen').classList.add('screen-transition');
+            setTimeout(initScrollAnimations, 100);
+        }
+
+        function hideAllScreens() {
+            const screens = document.querySelectorAll('[id$="Screen"]');
+            screens.forEach(screen => {
+                screen.classList.add('hidden');
+                screen.classList.remove('screen-transition');
+            });
+        }
+
+        // Обновление интерфейса
+        function updateUI() {
+            updateRequestHistory();
+        }
+
+        function updateRequestHistory() {
+            const historyElement = document.getElementById('requestHistory');
+            if (appData.requestHistory.length === 0) {
+                historyElement.innerHTML = '<p style="text-align: center; opacity: 0.7; padding: 15px 0;">У вас пока нет завершенных запросов</p>';
+            } else {
+                let historyHTML = '';
+                appData.requestHistory.forEach((request, index) => {
+                    historyHTML += `
+                        <div class="history-item">
+                            <div>
+                                <div class="history-service">${request.service}</div>
+                                <div class="history-date">${request.date}</div>
+                            </div>
+                            <div class="history-cost">${request.cost === 0 ? 'Бесплатно' : `-${request.cost}⭐`}</div>
+                        </div>
+                    `;
+                });
+                historyElement.innerHTML = historyHTML;
+            }
+        }
+
+        function showArticle(articleType) {
+            const articles = {
+                'horoscope': {
+                    title: 'Астрология: Наука или искусство?',
+                    content: 'Астрология - это древняя система знаний, изучающая влияние небесных тел на жизнь человека. Многие культуры на протяжении тысячелетий использовали астрологию для понимания циклов времени и человеческой природы.'
+                },
+                'compatibility': {
+                    title: 'Совместимость знаков зодиака',
+                    content: 'Совместимость знаков зодиака помогает понять энергетическое взаимодействие между людьми. Каждый знак имеет свои особенности, которые могут гармонировать или конфликтовать с другими знаками.'
+                },
+                'tarot': {
+                    title: 'Таро: Древняя мудрость карт',
+                    content: 'Карты Таро - это система символов, используемая для гадания и самопознания. Каждая карта представляет архетипические энергии и может служить инструментом для медитации и размышлений.'
+                },
+                'natal': {
+                    title: 'Натальная карта: Ваш астрологический паспорт',
+                    content: 'Натальная карта строится на момент вашего рождения и показывает расположение планет в зодиакальном круге. Это ваш уникальный астрологический портрет, раскрывающий потенциал и жизненные уроки.'
+                }
+            };
+            
+            const article = articles[articleType] || {
+                title: 'Статья',
+                content: 'Содержание статьи временно недоступно.'
+            };
+            
+            const content = `
+                <div class="header">
+                    <h1>${article.title}</h1>
+                </div>
+                <div class="result-card">
+                    <div class="article-content">
+                        <p>${article.content}</p>
+                        <p style="margin-top: 15px; opacity: 0.8; font-style: italic;">
+                            Это демонстрационная версия статьи. В будущем этот раздел будет заполнен подробными материалами.
+                        </p>
+                    </div>
+                </div>
+            `;
+            showResult(content);
+        }
+
+        // Вспомогательные функции
+        function showPaymentInfo() {
+            tg.showPopup({
+                title: 'Система оплаты',
+                message: 'Для использования платных услуг просто выберите нужную услугу. Оплата происходит напрямую через Telegram Stars. Баланс Stars можно пополнить в настройках Telegram.',
+                buttons: [{id: 'ok', type: 'ok'}]
+            });
+        }
+
+        function showError(message) {
+            tg.showPopup({
+                title: 'Ошибка',
+                message: message,
+                buttons: [{id: 'ok', type: 'ok'}]
+            });
+            showMainScreen();
+        }
+
+        // Обработчики событий
+        window.addEventListener('resize', adaptToScreenSize);
+        window.addEventListener('orientationchange', adaptToScreenSize);
+
+        // Глобальный обработчик ошибок
+        window.addEventListener('error', function(e) {
+            console.error('Global error:', e.error);
+        });
+
+        window.addEventListener('unhandledrejection', function(e) {
+            console.error('Unhandled promise rejection:', e.reason);
+        });
+
+        // Инициализация приложения
+        document.addEventListener('DOMContentLoaded', initApp);
+    </script>
+</body>
+</html>
