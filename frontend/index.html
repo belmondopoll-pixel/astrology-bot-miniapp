@@ -1252,25 +1252,37 @@
     </div>
 
     <script>
-        // Конфигурация
-        const BACKEND_URL = 'https://your-backend-url.vercel.app'; // Замените на ваш URL бэкенда
+        // Конфигурация - ЗАМЕНИТЕ НА ВАШ URL VERCEL
+        const BACKEND_URL = 'https://astrology-bot-miniapp-fronted.vercel.app';
 
         // Инициализация Telegram Web App
         let tg = window.Telegram?.WebApp;
         
-        if (!tg) {
+        // Режим разработки только если нет Telegram WebApp
+        if (!tg || !tg.initDataUnsafe) {
+            console.log('Running in development mode');
             tg = {
-                initDataUnsafe: { user: { first_name: 'Тестовый Пользователь', id: 123456 } },
-                showPopup: (params) => alert(params.message),
+                initDataUnsafe: { 
+                    user: { 
+                        first_name: 'Тестовый Пользователь', 
+                        id: Math.floor(Math.random() * 1000000),
+                        username: 'test_user'
+                    } 
+                },
+                showPopup: (params) => {
+                    console.log('Popup:', params);
+                    alert(params.message);
+                },
                 openInvoice: (url, callback) => {
                     console.log('Opening invoice:', url);
-                    // В демо-режиме имитируем успешную оплату
-                    if (confirm('Демо: Оплатить услугу через Telegram Stars?')) {
-                        setTimeout(() => callback('paid'), 1500);
-                    } else {
-                        callback('cancelled');
-                    }
-                }
+                    // В реальном приложении здесь будет настоящий инвойс
+                    showError('Платежная система временно недоступна. Используйте демо-режим.');
+                    callback('cancelled');
+                },
+                expand: () => console.log('App expanded'),
+                ready: () => console.log('App ready'),
+                enableClosingConfirmation: () => console.log('Closing confirmation enabled'),
+                viewportHeight: window.innerHeight
             };
         }
 
@@ -1280,7 +1292,7 @@
             firstSign: null,
             secondSign: null,
             selectedSpread: null,
-            requestHistory: [],
+            requestHistory: JSON.parse(localStorage.getItem('astrobot_history')) || [],
             pendingOrder: null
         };
 
@@ -1324,6 +1336,9 @@
                 updateUI();
                 initScrollAnimations();
                 
+                // Проверка соединения с бэкендом
+                await checkBackendConnection();
+                
                 // Показываем главный экран
                 showMainScreen();
                 
@@ -1332,6 +1347,20 @@
             } catch (error) {
                 console.error('App initialization error:', error);
                 showError('Ошибка инициализации приложения');
+            }
+        }
+
+        // Проверка соединения с бэкендом
+        async function checkBackendConnection() {
+            try {
+                const response = await fetch(`${BACKEND_URL}/api/health`);
+                const data = await response.json();
+                console.log('Backend connection:', data.status);
+                return true;
+            } catch (error) {
+                console.error('Backend connection failed:', error);
+                showError('Ошибка соединения с сервером');
+                return false;
             }
         }
 
@@ -1350,7 +1379,8 @@
             // Адаптация контейнера
             const container = document.querySelector('.container');
             if (container) {
-                container.style.minHeight = tg.viewportHeight + 'px';
+                const viewportHeight = tg.viewportHeight || window.innerHeight;
+                container.style.minHeight = viewportHeight + 'px';
             }
         }
 
@@ -1416,7 +1446,7 @@
                 });
             }, {
                 threshold: 0.1,
-                rootMargin: '0px 0px -50px 0px'
+                rootMargin: '0px 0px -20px 0px'
             });
             
             animatedElements.forEach(element => {
@@ -1428,12 +1458,15 @@
         async function updateUserData() {
             try {
                 if (tg.initDataUnsafe.user) {
-                    document.getElementById('userName').textContent = tg.initDataUnsafe.user.first_name || 'Пользователь';
+                    const userName = tg.initDataUnsafe.user.first_name || 'Пользователь';
+                    document.getElementById('userName').textContent = userName;
+                    appData.user = tg.initDataUnsafe.user;
                 }
             } catch (error) {
                 console.error('Error updating user data:', error);
                 if (tg.initDataUnsafe.user) {
                     document.getElementById('userName').textContent = tg.initDataUnsafe.user.first_name || 'Пользователь';
+                    appData.user = tg.initDataUnsafe.user;
                 }
             }
         }
@@ -1441,6 +1474,11 @@
         // Основная функция для платных услуг
         async function requestPaidService(serviceType, serviceData) {
             try {
+                if (!appData.user) {
+                    showError('Пользователь не авторизован');
+                    return;
+                }
+
                 showLoading('Создаем счет для оплаты...');
                 
                 const response = await fetch(`${BACKEND_URL}/api/create-invoice`, {
@@ -1449,7 +1487,7 @@
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({
-                        user_id: tg.initDataUnsafe.user.id,
+                        user_id: appData.user.id,
                         service_type: serviceType,
                         service_data: serviceData
                     })
@@ -1497,22 +1535,22 @@
                 showServiceResult(serviceType, serviceData, result.content);
                 
                 // Добавляем в историю
-                appData.requestHistory.unshift({
-                    service: getServiceName(serviceType, serviceData),
-                    date: new Date().toLocaleDateString('ru-RU'),
-                    cost: getServiceCost(serviceType)
-                });
-                updateUI();
+                addToHistory(serviceType, serviceData, getServiceCost(serviceType));
                 
             } catch (error) {
                 console.error('Service provision error:', error);
-                showError('Ошибка при предоставлении услуги');
+                showError('Ошибка при предоставлении услуги: ' + error.message);
             }
         }
 
         // Запрос бесплатного ежедневного гороскопа
         async function requestDailyHoroscope(sign) {
             try {
+                if (!appData.user) {
+                    showError('Пользователь не авторизован');
+                    return;
+                }
+
                 showLoading('Генерируем ваш гороскоп...');
                 
                 const response = await fetch(`${BACKEND_URL}/api/daily-horoscope`, {
@@ -1521,7 +1559,7 @@
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({
-                        user_id: tg.initDataUnsafe.user.id,
+                        user_id: appData.user.id,
                         zodiac_sign: sign
                     })
                 });
@@ -1545,17 +1583,30 @@
                 `;
                 
                 // Добавляем в историю
-                appData.requestHistory.unshift({
-                    service: `Ежедневный гороскоп для ${sign}`,
-                    date: new Date().toLocaleDateString('ru-RU'),
-                    cost: 0
-                });
-                updateUI();
+                addToHistory('daily_horoscope', { zodiac_sign: sign }, 0);
                 showResult(content);
+                
             } catch (error) {
                 console.error('Daily horoscope error:', error);
-                showError('Ошибка при получении гороскопа');
+                showError('Ошибка при получении гороскопа: ' + error.message);
             }
+        }
+
+        // Добавление в историю
+        function addToHistory(serviceType, serviceData, cost) {
+            const historyItem = {
+                service: getServiceName(serviceType, serviceData),
+                date: new Date().toLocaleDateString('ru-RU'),
+                cost: cost,
+                timestamp: new Date().toISOString()
+            };
+            
+            appData.requestHistory.unshift(historyItem);
+            
+            // Сохраняем в localStorage
+            localStorage.setItem('astrobot_history', JSON.stringify(appData.requestHistory));
+            
+            updateUI();
         }
 
         // Вспомогательные функции
@@ -1565,6 +1616,7 @@
 
         function getServiceName(serviceType, serviceData) {
             const names = {
+                'daily_horoscope': `Ежедневный гороскоп для ${serviceData.zodiac_sign}`,
                 'weekly_horoscope': `Недельный гороскоп для ${serviceData.zodiac_sign}`,
                 'compatibility': `Совместимость ${serviceData.first_sign} + ${serviceData.second_sign}`,
                 'tarot': `Расклад Таро (${serviceData.spread_type})`,
@@ -1779,7 +1831,7 @@
                 historyElement.innerHTML = '<p style="text-align: center; opacity: 0.7; padding: 15px 0;">У вас пока нет завершенных запросов</p>';
             } else {
                 let historyHTML = '';
-                appData.requestHistory.forEach((request, index) => {
+                appData.requestHistory.slice(0, 5).forEach((request, index) => {
                     historyHTML += `
                         <div class="history-item">
                             <div>
@@ -1850,7 +1902,6 @@
                 message: message,
                 buttons: [{id: 'ok', type: 'ok'}]
             });
-            showMainScreen();
         }
 
         // Обработчики событий
