@@ -6,6 +6,16 @@ const { v4: uuidv4 } = require('uuid');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Глобальная обработка ошибок
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+});
+
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught Exception:', error);
+  process.exit(1);
+});
+
 // Middleware
 app.use(cors());
 app.use(express.json());
@@ -28,22 +38,44 @@ const serviceCosts = {
     'natal_chart': 999
 };
 
-// Health check
-app.get('/api/health', (req, res) => {
+// Простой тестовый маршрут
+app.get('/test', (req, res) => {
+    console.log('Test route called');
     res.json({ 
         status: 'ok', 
-        timestamp: new Date().toISOString(),
-        services: Object.keys(serviceCosts)
+        message: 'Server is working!',
+        timestamp: new Date().toISOString()
     });
 });
 
-// Корневой путь для проверки
+// Корневой путь
 app.get('/', (req, res) => {
-  res.json({ 
-    message: 'Astrology Bot Backend is running!',
-    timestamp: new Date().toISOString(),
-    endpoints: ['/api/health', '/api/daily-horoscope', '/api/create-invoice', etc...]
-  });
+    console.log('Root route called');
+    res.json({ 
+        message: 'Astrology Bot Backend is running!',
+        timestamp: new Date().toISOString(),
+        endpoints: [
+            '/test',
+            '/api/health', 
+            '/api/daily-horoscope', 
+            '/api/create-invoice',
+            '/api/weekly-horoscope',
+            '/api/compatibility',
+            '/api/tarot-reading',
+            '/api/natal-chart'
+        ]
+    });
+});
+
+// Health check
+app.get('/api/health', (req, res) => {
+    console.log('Health check called');
+    res.json({ 
+        status: 'ok', 
+        timestamp: new Date().toISOString(),
+        services: Object.keys(serviceCosts),
+        environment: process.env.NODE_ENV || 'development'
+    });
 });
 
 // Создание инвойса для Telegram Stars
@@ -448,6 +480,7 @@ app.listen(PORT, () => {
     console.log(`🚀 Astrology Bot Backend running on port ${PORT}`);
     console.log(`📊 Available services:`, Object.keys(serviceCosts));
     console.log(`🔑 Gemini API:`, GEMINI_API_KEY ? 'Configured' : 'Not configured');
+    console.log(`🤖 Bot Token:`, BOT_TOKEN ? 'Configured' : 'Not configured');
 });
 
 module.exports = app;
